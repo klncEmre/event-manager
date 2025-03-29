@@ -10,7 +10,7 @@ const MyEvents = () => {
   useEffect(() => {
     const fetchMyEvents = async () => {
       try {
-        const response = await API.get('/events/my-events');
+        const response = await API.get('/api/events/my-events/');
         setEvents(response.data);
       } catch (err) {
         setError('Failed to load your events. Please try again later.');

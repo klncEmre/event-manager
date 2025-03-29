@@ -39,7 +39,7 @@ const Navbar = () => {
             {isPublisher(currentUser) && (
               <>
                 <li className="nav-item">
-                  <Link className="nav-link" to="/">All Events</Link>
+                  <Link className="nav-link" to="/events">All Events</Link>
                 </li>
                 <li className="nav-item">
                   <Link className="nav-link" to="/my-events">My Events</Link>
@@ -54,7 +54,7 @@ const Navbar = () => {
             {isRegularUser(currentUser) && (
               <>
                 <li className="nav-item">
-                  <Link className="nav-link" to="/">Events</Link>
+                  <Link className="nav-link" to="/events">Events</Link>
                 </li>
                 <li className="nav-item">
                   <Link className="nav-link" to="/my-registrations">My Registrations</Link>
@@ -65,7 +65,7 @@ const Navbar = () => {
             {/* Not Logged In Navigation */}
             {!currentUser && (
               <li className="nav-item">
-                <Link className="nav-link" to="/">Events</Link>
+                <Link className="nav-link" to="/events">Events</Link>
               </li>
             )}
           </ul>

@@ -16,12 +16,17 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(get_config())
     
+    # Disable strict slashes to handle URLs with or without trailing slashes
+    app.url_map.strict_slashes = False
+    
     # Initialize extensions with app
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
     bcrypt.init_app(app)
-    CORS(app, resources={r"/*": {"origins": "*"}})
+    
+    # Configure CORS properly to handle preflight requests
+    CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True, methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
     
     # Import and register blueprints
     from app.routes.auth import auth_bp

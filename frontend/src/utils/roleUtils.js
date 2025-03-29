@@ -53,7 +53,7 @@ export const canManageEvents = (user) => {
 export const getHomePageForUser = (user) => {
   if (isAdmin(user)) return '/admin';
   if (isPublisher(user)) return '/my-events';
-  return '/';
+  return '/events';
 };
 
 /**

@@ -14,6 +14,7 @@ import EditEvent from './pages/EditEvent';
 import MyEvents from './pages/MyEvents';
 import MyRegistrations from './pages/MyRegistrations';
 import AdminDashboard from './pages/AdminDashboard';
+import EventsPage from './pages/EventsPage';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import PublisherRoute from './components/PublisherRoute';
@@ -34,6 +35,7 @@ function AppRoutes() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/events" element={<EventsPage />} />
       <Route path="/events/:eventId" element={<EventDetails />} />
       
       {/* Protected routes */}

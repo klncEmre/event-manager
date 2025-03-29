@@ -11,92 +11,67 @@ const EventDetails = () => {
   const [error, setError] = useState(null);
   const [registering, setRegistering] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [registrationError, setRegistrationError] = useState(null);
   const { currentUser } = useContext(AuthContext);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchEvent = async () => {
+    const fetchEventDetails = async () => {
       try {
-        console.log('Fetching event:', eventId);
-        console.log('Current user:', currentUser);
-        
-        // Make sure we have the latest token
+        // Check if there's a token in local storage
         const token = localStorage.getItem('token');
-        console.log('Token available:', !!token);
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
         
-        // Ensure the token is set in headers for this specific request
-        const headers = {};
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-        
-        const response = await API.get(`/events/${eventId}`, { headers });
-        console.log('Event data:', response.data);
+        // Fetch the event details
+        const response = await API.get(`/api/events/${eventId}`, { headers });
         setEvent(response.data);
         
-        // Check if user is registered
-        if (currentUser) {
+        // If user is authenticated, check if they're registered for this event
+        if (currentUser && !isPublisher(currentUser) && !isAdmin(currentUser)) {
           try {
-            // Make a separate call to check registrations if the user is logged in
-            const registrationsResponse = await API.get('/events/my-registrations', { headers });
-            const registeredEvents = registrationsResponse.data;
-            const isUserRegistered = registeredEvents.some(e => e.id === parseInt(eventId));
-            console.log('User is registered:', isUserRegistered);
-            setIsRegistered(isUserRegistered);
+            const registrationsResponse = await API.get('/api/events/my-registrations/', { headers });
+            const userRegistrations = registrationsResponse.data;
+            const isRegistered = userRegistrations.some(reg => reg.id === parseInt(eventId));
+            setIsRegistered(isRegistered);
           } catch (err) {
-            console.error("Error checking registration status:", err);
+            console.error("Failed to check registration status:", err);
           }
         }
       } catch (err) {
-        console.error('Error fetching event:', err);
-        console.error('Response status:', err.response?.status);
-        console.error('Response data:', err.response?.data);
-        
-        // Set appropriate error message based on the response
-        if (err.response?.status === 401) {
-          setError('You need to be logged in to view this event.');
-        } else if (err.response?.status === 403) {
-          setError('You do not have permission to view this event.');
-        } else if (err.response?.status === 404) {
-          setError('Event not found.');
-        } else {
-          setError(err.response?.data?.message || 'Failed to load event. Please try again later.');
-        }
+        setError(err.response?.data?.message || 'Failed to load event details');
+        console.error(err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchEvent();
+    fetchEventDetails();
   }, [eventId, currentUser]);
 
-  const handleRegister = async () => {
-    if (!currentUser) {
-      navigate('/login');
-      return;
-    }
-
-    setRegistering(true);
+  const handleRegistration = async () => {
     try {
-      await API.post(`/events/${eventId}/register`);
-      // Update event data
-      const response = await API.get(`/events/${eventId}`);
-      setEvent(response.data);
+      await API.post(`/api/events/${eventId}/register/`);
       setIsRegistered(true);
+      setRegistrationSuccess(true);
+      
+      // Update attendee count
+      setEvent({
+        ...event,
+        attendee_count: (event.attendee_count || 0) + 1
+      });
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to register for event');
+      setRegistrationError(err.response?.data?.message || 'Registration failed');
       console.error(err);
-    } finally {
-      setRegistering(false);
     }
   };
 
   const handleUnregister = async () => {
     setRegistering(true);
     try {
-      await API.delete(`/events/${eventId}/unregister`);
+      await API.delete(`/api/events/${eventId}/unregister/`);
       // Update event data
-      const response = await API.get(`/events/${eventId}`);
+      const response = await API.get(`/api/events/${eventId}`);
       setEvent(response.data);
       setIsRegistered(false);
     } catch (err) {
@@ -110,8 +85,8 @@ const EventDetails = () => {
   const handleDelete = async () => {
     if (window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
       try {
-        await API.delete(`/events/${eventId}`);
-        navigate('/');
+        await API.delete(`/api/events/${eventId}`);
+        navigate('/events');
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to delete event');
         console.error(err);
@@ -221,7 +196,7 @@ const EventDetails = () => {
               ) : (
                 <button 
                   className="btn btn-success btn-lg" 
-                  onClick={handleRegister}
+                  onClick={handleRegistration}
                   disabled={registering || isEventFull}
                 >
                   {registering ? 'Processing...' : (isEventFull ? 'Event Full' : 'Register for Event')}

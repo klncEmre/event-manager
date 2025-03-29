@@ -7,14 +7,22 @@ const CreateEvent = () => {
     title: '',
     description: '',
     location: '',
-    start_time: '',
-    end_time: '',
+    startDate: '',
+    startTime: '',
+    endDate: '',
+    endTime: '',
     capacity: '',
     is_published: false
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+
+  // Function to format date and time to ISO format
+  const formatISODate = (date, time) => {
+    if (!date || !time) return '';
+    return `${date}T${time}:00.000Z`;
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -29,28 +37,25 @@ const CreateEvent = () => {
     setLoading(true);
     setError(null);
 
-    // Format payload
-    const payload = {
-      ...formData,
-      capacity: formData.capacity ? parseInt(formData.capacity) : null
-    };
-
     try {
-      const response = await API.post('/events/', payload);
+      // Add required fields to the event payload
+      const payload = {
+        title: formData.title,
+        description: formData.description,
+        location: formData.location,
+        start_time: formatISODate(formData.startDate, formData.startTime),
+        end_time: formatISODate(formData.endDate, formData.endTime),
+        capacity: formData.capacity ? parseInt(formData.capacity) : null,
+        is_published: formData.is_published,
+      };
+      
+      // Send API request to create event
+      const response = await API.post('/api/events/', payload);
       navigate(`/events/${response.data.event.id}`);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create event. Please try again.');
-      console.error(err);
-    } finally {
+      setError(err.response?.data?.message || 'Failed to create event');
       setLoading(false);
     }
-  };
-
-  // Get current date and time in ISO format for the datetime-local input
-  const getCurrentDateTime = () => {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    return now.toISOString().slice(0, 16);
   };
 
   return (
@@ -108,29 +113,53 @@ const CreateEvent = () => {
 
               <div className="row">
                 <div className="col-md-6 mb-3">
-                  <label htmlFor="start_time" className="form-label">Start Time</label>
+                  <label htmlFor="startDate" className="form-label">Start Date</label>
                   <input
-                    type="datetime-local"
+                    type="date"
                     className="form-control"
-                    id="start_time"
-                    name="start_time"
-                    value={formData.start_time}
+                    id="startDate"
+                    name="startDate"
+                    value={formData.startDate}
                     onChange={handleChange}
-                    min={getCurrentDateTime()}
                     required
                   />
                 </div>
-
                 <div className="col-md-6 mb-3">
-                  <label htmlFor="end_time" className="form-label">End Time</label>
+                  <label htmlFor="startTime" className="form-label">Start Time</label>
                   <input
-                    type="datetime-local"
+                    type="time"
                     className="form-control"
-                    id="end_time"
-                    name="end_time"
-                    value={formData.end_time}
+                    id="startTime"
+                    name="startTime"
+                    value={formData.startTime}
                     onChange={handleChange}
-                    min={formData.start_time || getCurrentDateTime()}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="row">
+                <div className="col-md-6 mb-3">
+                  <label htmlFor="endDate" className="form-label">End Date</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    id="endDate"
+                    name="endDate"
+                    value={formData.endDate}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                <div className="col-md-6 mb-3">
+                  <label htmlFor="endTime" className="form-label">End Time</label>
+                  <input
+                    type="time"
+                    className="form-control"
+                    id="endTime"
+                    name="endTime"
+                    value={formData.endTime}
+                    onChange={handleChange}
                     required
                   />
                 </div>

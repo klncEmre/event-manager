@@ -1,10 +1,21 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, make_response
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from app.models.user import User, UserRole
 from app.utils.auth import admin_required, get_current_user
 
 users_bp = Blueprint('users', __name__)
+
+# Add a route to handle OPTIONS preflight requests for all users endpoints
+@users_bp.route('/<path:path>', methods=['OPTIONS'])
+@users_bp.route('/', methods=['OPTIONS'])
+def handle_options(path=None):
+    response = make_response()
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
 
 @users_bp.route('/', methods=['GET'])
 @jwt_required()

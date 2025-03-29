@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create an Axios instance with default configs
 const API = axios.create({
-  baseURL: 'http://localhost:5001/api', // Flask backend URL with API prefix
+  baseURL: 'http://localhost:5001', // Flask backend URL without API prefix
   headers: {
     'Content-Type': 'application/json',
   },
@@ -82,8 +82,8 @@ API.interceptors.response.use(
           return Promise.reject(error);
         }
         
-        // Call the refresh token endpoint
-        const response = await axios.post(`${API.defaults.baseURL}/auth/refresh`, {}, {
+        // Call the refresh token endpoint with the correct API path
+        const response = await axios.post(`${API.defaults.baseURL}/api/auth/refresh`, {}, {
           headers: { Authorization: `Bearer ${refreshToken}` }
         });
         

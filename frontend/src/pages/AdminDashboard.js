@@ -28,8 +28,8 @@ const AdminDashboard = () => {
 
         // Fetch all data in parallel
         const [eventsResponse, usersResponse] = await Promise.all([
-          API.get('/events/all'),
-          API.get('/users/'),
+          API.get('/api/events/all/'),
+          API.get('/api/users/'),
         ]);
 
         setEvents(eventsResponse.data);
@@ -64,7 +64,7 @@ const AdminDashboard = () => {
     setRegisterError(null);
     
     try {
-      const response = await API.post('/users/register-publisher', registerForm);
+      const response = await API.post('/api/users/register-publisher/', registerForm);
       
       // Add the new user to the users list
       setUsers([...users, response.data.user]);

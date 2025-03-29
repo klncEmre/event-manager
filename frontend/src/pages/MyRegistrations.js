@@ -11,7 +11,7 @@ const MyRegistrations = () => {
   useEffect(() => {
     const fetchMyRegistrations = async () => {
       try {
-        const response = await API.get('/events/my-registrations');
+        const response = await API.get('/api/events/my-registrations/');
         setEvents(response.data);
       } catch (err) {
         setError('Failed to load your registrations. Please try again later.');
@@ -27,7 +27,7 @@ const MyRegistrations = () => {
   const handleCancelRegistration = async (eventId) => {
     setCancelling(eventId);
     try {
-      await API.delete(`/events/${eventId}/unregister`);
+      await API.delete(`/api/events/${eventId}/unregister/`);
       // Remove the event from the list
       setEvents(events.filter(event => event.id !== eventId));
     } catch (err) {

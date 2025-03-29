@@ -17,7 +17,7 @@ export const AuthProvider = ({ children }) => {
       
       if (token) {
         try {
-          const response = await API.get('/auth/me');
+          const response = await API.get('/api/auth/me/');
           setCurrentUser(response.data);
         } catch (err) {
           // If token is invalid or expired, clear local storage
@@ -34,56 +34,79 @@ export const AuthProvider = ({ children }) => {
     checkLoggedIn();
   }, []);
 
-  // Login function
+  // Load current user info if token exists
+  const loadUser = async () => {
+    try {
+      if (localStorage.getItem('token')) {
+        const response = await API.get('/api/auth/me/');
+        setCurrentUser(response.data);
+      }
+    } catch (error) {
+      // Token is invalid, clear everything
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      setCurrentUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Login
   const login = async (email, password) => {
     try {
-      const response = await API.post('/auth/login', { email, password });
-      const { user, access_token, refresh_token } = response.data;
+      const response = await API.post('/api/auth/login/', { email, password });
+      localStorage.setItem('token', response.data.access_token);
+      localStorage.setItem('refreshToken', response.data.refresh_token);
       
-      localStorage.setItem('token', access_token);
-      localStorage.setItem('refreshToken', refresh_token);
-      setCurrentUser(user);
-      setError(null);
-      return user;
-    } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
-      throw err;
+      // Get user info
+      const userResponse = await API.get('/api/auth/me/');
+      setCurrentUser(userResponse.data);
+      return true;
+    } catch (error) {
+      throw error;
     }
   };
 
-  // Register function
+  // Register
   const register = async (username, email, password) => {
     try {
-      const response = await API.post('/auth/register', { username, email, password });
-      return response.data;
-    } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
-      throw err;
+      const response = await API.post('/api/auth/register/', { username, email, password });
+      return true;
+    } catch (error) {
+      throw error;
     }
   };
 
-  // Logout function
+  // Logout
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     setCurrentUser(null);
   };
 
-  // Refresh token function
+  // Refresh token
   const refreshToken = async () => {
     try {
-      const refresh = localStorage.getItem('refreshToken');
-      if (!refresh) throw new Error('No refresh token available');
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (!refreshToken) {
+        throw new Error('No refresh token available');
+      }
       
-      const response = await API.post('/auth/refresh', {}, {
-        headers: { Authorization: `Bearer ${refresh}` }
+      const response = await API.post('/api/auth/refresh/', {}, {
+        headers: {
+          Authorization: `Bearer ${refreshToken}`
+        }
       });
       
+      // Update token in local storage
       localStorage.setItem('token', response.data.access_token);
       return response.data.access_token;
-    } catch (err) {
-      logout();
-      throw err;
+    } catch (error) {
+      // Clear everything
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      setCurrentUser(null);
+      throw error;
     }
   };
 

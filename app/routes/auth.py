@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, make_response
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, verify_jwt_in_request
 from app import db
 from app.models.user import User, UserRole
@@ -8,7 +8,19 @@ from functools import wraps
 
 auth_bp = Blueprint('auth', __name__)
 
+# Add a route to handle OPTIONS preflight requests for all auth endpoints
+@auth_bp.route('/<path:path>', methods=['OPTIONS'])
+@auth_bp.route('/', methods=['OPTIONS'])
+def handle_options(path=None):
+    response = make_response()
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
+
 @auth_bp.route('/register', methods=['POST'])
+@auth_bp.route('/register/', methods=['POST'])
 def register():
     data = request.get_json()
     
@@ -46,6 +58,7 @@ def register():
     }), 201
 
 @auth_bp.route('/login', methods=['POST'])
+@auth_bp.route('/login/', methods=['POST'])
 def login():
     data = request.get_json()
     
@@ -104,6 +117,7 @@ def custom_jwt_refresh_required():
     return wrapper
 
 @auth_bp.route('/refresh', methods=['POST'])
+@auth_bp.route('/refresh/', methods=['POST'])
 @custom_jwt_refresh_required()
 def refresh():
     identity = get_jwt_identity()
@@ -117,6 +131,7 @@ def refresh():
     }), 200
 
 @auth_bp.route('/me', methods=['GET'])
+@auth_bp.route('/me/', methods=['GET'])
 @custom_jwt_required()
 def get_me():
     user_id = get_jwt_identity()
@@ -133,6 +148,7 @@ def get_me():
     return jsonify(user.to_dict()), 200
 
 @auth_bp.route('/validate-token', methods=['POST'])
+@auth_bp.route('/validate-token/', methods=['POST'])
 def validate_token():
     """Validate a token without requiring authentication"""
     try:
