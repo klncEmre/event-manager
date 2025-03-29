@@ -1,6 +1,6 @@
-# Event Manager Frontend
+# EVENT PLATFORM Frontend
 
-This is the frontend application for the Event Manager system, built with React.
+This is the frontend application for the EVENT PLATFORM system, built with React.
 
 ## Features
 
@@ -18,17 +18,29 @@ This is the frontend application for the Event Manager system, built with React.
 
 ## Getting Started
 
-1. Install dependencies:
-```
+These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
+
+### Installing
+
+1. Clone the repository
+2. Navigate to the frontend directory
+3. Install dependencies:
+
+```bash
 npm install
+# or
+yarn
 ```
 
-2. Start the development server:
-```
+4. Start the development server:
+
+```bash
 npm start
+# or
+yarn start
 ```
 
-The application will be available at http://localhost:3000.
+This will start the application on [http://localhost:3000](http://localhost:3000).
 
 ## Connecting to the Backend
 
@@ -43,7 +55,12 @@ The frontend is configured to proxy API requests to the backend server running o
 
 ## Project Structure
 
-- `/src/api`: API client configuration
 - `/src/components`: Reusable UI components
+- `/src/pages`: Page components for routes
 - `/src/context`: React context for global state management
-- `/src/pages`: Page components for routes 
+- `/src/api`: API client configuration
+- `/src/utils`: Utility functions
+
+## API Documentation
+
+The frontend communicates with a Flask backend API. See the backend repository for API documentation. 

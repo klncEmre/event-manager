@@ -15,7 +15,7 @@ const Navbar = () => {
   // Helper to render role-specific title/badge next to username
   const getRoleBadge = () => {
     if (isAdmin(currentUser)) return <span className="badge bg-danger ms-1">Admin</span>;
-    if (isPublisher(currentUser)) return <span className="badge bg-success ms-1">Event Manager</span>;
+    if (isPublisher(currentUser)) return <span className="badge bg-success ms-1">Platform Manager</span>;
     return null;
   };
 
@@ -35,7 +35,7 @@ const Navbar = () => {
               </li>
             )}
             
-            {/* Publisher/Event Manager Navigation */}
+            {/* Publisher/Platform Manager Navigation */}
             {isPublisher(currentUser) && (
               <>
                 <li className="nav-item">

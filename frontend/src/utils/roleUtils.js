@@ -66,7 +66,7 @@ export const getRoleName = (role) => {
     case ROLES.ADMIN:
       return 'Administrator';
     case ROLES.PUBLISHER:
-      return 'Event Manager';
+      return 'Platform Manager';
     case ROLES.USER:
       return 'User';
     default:
