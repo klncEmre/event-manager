@@ -1,10 +1,10 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
 from datetime import datetime
 from app import db
 from app.models.event import Event
 from app.models.user import User
-from app.utils.auth import publisher_required, get_current_user
+from app.utils.auth import publisher_required, get_current_user, custom_jwt_required
 
 events_bp = Blueprint('events', __name__)
 
@@ -35,23 +35,66 @@ def get_all_events():
 @events_bp.route('/<int:event_id>', methods=['GET'])
 def get_event(event_id):
     """Get a specific event"""
+    print(f"Fetching event with ID: {event_id}")
+    
+    # Check for auth header first
+    auth_header = request.headers.get('Authorization', '')
+    print(f"Authorization header present: {bool(auth_header)}")
+    if auth_header:
+        print(f"Auth header format: {auth_header[:10]}...")
+    
     event = Event.query.get(event_id)
     
     if not event:
+        print(f"Event with ID {event_id} not found in database")
         return jsonify({'message': 'Event not found'}), 404
     
-    # Check if the event is published or the requester is the publisher/admin
-    if not event.is_published:
-        # Check if user is authenticated
-        try:
-            user = get_current_user()
-            # Only publisher of this event or admin can see unpublished events
-            if not user or (user.id != event.publisher_id and not user.is_admin()):
-                return jsonify({'message': 'Event not found'}), 404
-        except:
-            return jsonify({'message': 'Event not found'}), 404
+    print(f"Event found: {event.title}, Published: {event.is_published}, Publisher ID: {event.publisher_id}")
     
-    return jsonify(event.to_dict()), 200
+    # If event is published, anyone can view it
+    if event.is_published:
+        print(f"Event {event_id} is published, returning to any user")
+        return jsonify(event.to_dict()), 200
+    
+    # For unpublished events, verify authentication directly
+    try:
+        # Force token verification
+        try:
+            verify_jwt_in_request()
+            user_id = get_jwt_identity()
+            print(f"Successfully verified JWT token. User ID: {user_id}")
+            
+            # Convert string ID to integer if needed
+            if isinstance(user_id, str) and user_id.isdigit():
+                user_id = int(user_id)
+                
+            # Get user from database
+            user = User.query.filter_by(id=user_id).first()
+            
+            if not user:
+                print(f"User with ID {user_id} not found in database")
+                return jsonify({'message': 'Authentication required to view this event'}), 401
+            
+            print(f"User authenticated: ID {user.id}, Username: {user.username}, Role: {user.role}")
+            
+            # Check if user is the publisher or an admin
+            if user.id == event.publisher_id or user.role == 'admin':
+                print(f"User {user.id} has permission to view unpublished event {event_id}")
+                print(f"Matched condition: publisher_id match: {user.id == event.publisher_id}, admin role: {user.role == 'admin'}")
+                return jsonify(event.to_dict()), 200
+            else:
+                print(f"User {user.id} does not have permission to view unpublished event {event_id}")
+                print(f"Failed condition: user.id: {user.id}, event.publisher_id: {event.publisher_id}, user.role: {user.role}")
+                return jsonify({'message': 'You do not have permission to view this event'}), 403
+                
+        except Exception as e:
+            print(f"JWT verification failed: {str(e)}")
+            return jsonify({'message': 'Authentication required to view this event'}), 401
+    except Exception as e:
+        print(f"Error checking event permissions: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'message': 'Authentication error occurred'}), 401
 
 @events_bp.route('/', methods=['POST'])
 @jwt_required()
@@ -179,8 +222,12 @@ def delete_event(event_id):
 @events_bp.route('/<int:event_id>/register', methods=['POST'])
 @jwt_required()
 def register_for_event(event_id):
-    """Register for an event (any authenticated user)"""
+    """Register for an event (any authenticated user except publishers/admins)"""
     user = get_current_user()
+    
+    # Check if user is a publisher or admin
+    if user.role in ['publisher', 'admin']:
+        return jsonify({'message': 'Event managers cannot register for events'}), 403
     
     event = Event.query.get(event_id)
     if not event:
@@ -267,11 +314,14 @@ def get_my_events():
     return jsonify([event.to_dict() for event in events]), 200
 
 @events_bp.route('/my-registrations', methods=['GET'])
-@jwt_required()
+@custom_jwt_required()
 def get_my_registrations():
     """Get events the current user is registered for"""
     user = get_current_user()
     
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+        
     # Get all events the user is attending
     events = user.events_attending
     

@@ -1,8 +1,10 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, verify_jwt_in_request
 from app import db
 from app.models.user import User, UserRole
 from email_validator import validate_email, EmailNotValidError
+from app.utils.auth import custom_jwt_required
+from functools import wraps
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -59,8 +61,8 @@ def login():
         return jsonify({'message': 'Invalid email or password'}), 401
     
     # Create access and refresh tokens
-    access_token = create_access_token(identity=user.id)
-    refresh_token = create_refresh_token(identity=user.id)
+    access_token = create_access_token(identity=str(user.id))
+    refresh_token = create_refresh_token(identity=str(user.id))
     
     return jsonify({
         'message': 'Login successful',
@@ -69,10 +71,45 @@ def login():
         'refresh_token': refresh_token
     }), 200
 
+def custom_jwt_refresh_required():
+    """
+    Custom wrapper for jwt_required(refresh=True) that handles JWT validation errors
+    """
+    def wrapper(fn):
+        @wraps(fn)
+        def decorator(*args, **kwargs):
+            try:
+                # Check for Authorization header
+                auth_header = request.headers.get('Authorization', '')
+                if not auth_header or not auth_header.startswith('Bearer '):
+                    return jsonify({"message": "Missing or invalid refresh token", "error_type": "no_token"}), 401
+                
+                # Attempt to verify the JWT token with refresh=True
+                verify_jwt_in_request(refresh=True)
+                return fn(*args, **kwargs)
+            except Exception as e:
+                # Print detailed error for debugging
+                import traceback
+                print(f"Refresh Token Validation Error: {str(e)}")
+                print(traceback.format_exc())
+                
+                # Return more specific error response
+                if 'expired' in str(e).lower():
+                    return jsonify({"message": "Refresh token has expired", "error_type": "token_expired"}), 401
+                elif 'signature' in str(e).lower():
+                    return jsonify({"message": "Invalid refresh token signature", "error_type": "invalid_signature"}), 401
+                else:
+                    return jsonify({"message": f"Refresh token validation failed: {str(e)}", "error_type": "auth_failed"}), 401
+        return decorator
+    return wrapper
+
 @auth_bp.route('/refresh', methods=['POST'])
-@jwt_required(refresh=True)
+@custom_jwt_refresh_required()
 def refresh():
     identity = get_jwt_identity()
+    # Make sure identity is a string
+    if not isinstance(identity, str):
+        identity = str(identity)
     access_token = create_access_token(identity=identity)
     
     return jsonify({
@@ -80,12 +117,59 @@ def refresh():
     }), 200
 
 @auth_bp.route('/me', methods=['GET'])
-@jwt_required()
+@custom_jwt_required()
 def get_me():
     user_id = get_jwt_identity()
+    
+    # Convert string ID to integer if needed
+    if isinstance(user_id, str) and user_id.isdigit():
+        user_id = int(user_id)
+    
     user = User.query.filter_by(id=user_id).first()
     
     if not user:
         return jsonify({'message': 'User not found'}), 404
     
-    return jsonify(user.to_dict()), 200 
+    return jsonify(user.to_dict()), 200
+
+@auth_bp.route('/validate-token', methods=['POST'])
+def validate_token():
+    """Validate a token without requiring authentication"""
+    try:
+        data = request.get_json()
+        
+        if not data or 'token' not in data:
+            return jsonify({'message': 'Token is required'}), 400
+            
+        # Extract the token
+        token = data['token']
+        
+        # Manually decode and validate the token
+        from flask_jwt_extended import decode_token
+        try:
+            decoded = decode_token(token)
+            user_id = decoded['sub']
+            user = User.query.filter_by(id=user_id).first()
+            
+            if not user:
+                return jsonify({'message': 'User not found for this token', 'valid': False}), 404
+                
+            return jsonify({
+                'message': 'Token is valid',
+                'valid': True, 
+                'user': user.to_dict()
+            }), 200
+            
+        except Exception as e:
+            import traceback
+            print(f"Token validation error: {str(e)}")
+            print(traceback.format_exc())
+            
+            return jsonify({
+                'message': f'Token validation failed: {str(e)}',
+                'valid': False,
+                'error': str(e)
+            }), 401
+            
+    except Exception as e:
+        return jsonify({'message': f'Error: {str(e)}', 'valid': False}), 500 

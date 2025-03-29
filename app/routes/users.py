@@ -108,4 +108,46 @@ def revoke_privileges(user_id):
     return jsonify({
         'message': 'User privileges revoked successfully',
         'user': user.to_dict()
-    }), 200 
+    }), 200
+
+@users_bp.route('/register-publisher', methods=['POST'])
+@jwt_required()
+@admin_required()
+def register_publisher():
+    """Register a new user as publisher (admin only)"""
+    data = request.get_json()
+    
+    # Validate request data
+    if not data or not all(key in data for key in ('username', 'email', 'password')):
+        return jsonify({'message': 'Missing required fields'}), 400
+    
+    # Check if username or email already exists
+    if User.query.filter_by(username=data['username']).first():
+        return jsonify({'message': 'Username already exists'}), 400
+    
+    try:
+        # Validate email
+        from email_validator import validate_email, EmailNotValidError
+        valid = validate_email(data['email'])
+        email = valid.email
+    except EmailNotValidError as e:
+        return jsonify({'message': str(e)}), 400
+    
+    if User.query.filter_by(email=email).first():
+        return jsonify({'message': 'Email already exists'}), 400
+    
+    # Create new user with publisher role
+    user = User(
+        username=data['username'],
+        email=email,
+        password=data['password'],
+        role=UserRole.PUBLISHER
+    )
+    
+    db.session.add(user)
+    db.session.commit()
+    
+    return jsonify({
+        'message': 'Event manager registered successfully',
+        'user': user.to_dict()
+    }), 201 
