@@ -52,3 +52,4 @@ instance/
 # Logs
 logs/
 *.log 
+.env.example
