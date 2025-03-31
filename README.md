@@ -7,7 +7,7 @@ A backend API for managing events with role-based access control.
 - **Authentication System**: JWT-based authentication
 - **Role-Based Access Control**: Three roles (admin, publisher, user)
 - **Event Management**: Create, read, update, delete events
-- **User Management**: Create users, change roles
+- **User Management**: Create users
 - **Event Registration**: Users can register/unregister for events
 
 ## Technologies Used

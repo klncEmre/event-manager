@@ -13,6 +13,7 @@ class Event(db.Model):
     end_time = db.Column(db.DateTime, nullable=False)
     capacity = db.Column(db.Integer, nullable=True)
     is_published = db.Column(db.Boolean, default=False)
+    ticket_price = db.Column(db.Float, nullable=True, default=0.0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -71,6 +72,7 @@ class Event(db.Model):
             'end_time': self.end_time.isoformat(),
             'capacity': self.capacity,
             'is_published': self.is_published,
+            'ticket_price': self.ticket_price,
             'publisher_id': self.publisher_id,
             'attendee_count': self.get_attendee_count(),
             'is_full': self.is_full(),
