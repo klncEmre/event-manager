@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../api/axios';
+import { AuthContext } from '../context/AuthContext';
+import { isAdmin } from '../utils/roleUtils';
 
 const CreateEvent = () => {
+  const { currentUser } = useContext(AuthContext);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -51,7 +54,12 @@ const CreateEvent = () => {
       
       // Send API request to create event
       const response = await API.post('/api/events/', payload);
-      navigate(`/events/${response.data.event.id}`);
+      // Redirect admins to admin dashboard, others to event details
+      if (isAdmin(currentUser)) {
+        navigate('/admin');
+      } else {
+        navigate(`/events/${response.data.event.id}`);
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create event');
       setLoading(false);

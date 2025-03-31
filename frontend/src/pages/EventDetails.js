@@ -86,7 +86,12 @@ const EventDetails = () => {
     if (window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
       try {
         await API.delete(`/api/events/${eventId}`);
-        navigate('/events');
+        // Redirect admins to admin dashboard, others to events page
+        if (isAdmin(currentUser)) {
+          navigate('/admin');
+        } else {
+          navigate('/events');
+        }
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to delete event');
         console.error(err);

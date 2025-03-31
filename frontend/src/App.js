@@ -28,6 +28,14 @@ const AdminAwareRedirect = () => {
     : <Navigate to="/" />;
 };
 
+// Redirect component to ensure admins always go to admin dashboard
+const EventsPageWrapper = () => {
+  const { currentUser } = useContext(AuthContext);
+  return currentUser && currentUser.role === 'admin'
+    ? <Navigate to="/admin" />
+    : <EventsPage />;
+};
+
 function AppRoutes() {
   return (
     <Routes>
@@ -35,7 +43,7 @@ function AppRoutes() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/events" element={<EventsPage />} />
+      <Route path="/events" element={<EventsPageWrapper />} />
       <Route path="/events/:eventId" element={<EventDetails />} />
       
       {/* Protected routes */}

@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import API from '../api/axios';
+import { AuthContext } from '../context/AuthContext';
+import { isAdmin } from '../utils/roleUtils';
 
 const EditEvent = () => {
   const { eventId } = useParams();
+  const { currentUser } = useContext(AuthContext);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -22,7 +25,7 @@ const EditEvent = () => {
   useEffect(() => {
     const fetchEvent = async () => {
       try {
-        const response = await API.get(`/events/${eventId}`);
+        const response = await API.get(`/api/events/${eventId}`);
         const event = response.data;
         
         // Format dates for datetime-local input
@@ -71,8 +74,13 @@ const EditEvent = () => {
     };
 
     try {
-      await API.put(`/events/${eventId}`, payload);
-      navigate(`/events/${eventId}`);
+      await API.put(`/api/events/${eventId}`, payload);
+      // Redirect admins to admin dashboard, others to event details
+      if (isAdmin(currentUser)) {
+        navigate('/admin');
+      } else {
+        navigate(`/events/${eventId}`);
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update event. Please try again.');
       console.error(err);
