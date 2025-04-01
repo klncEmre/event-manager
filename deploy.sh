@@ -36,6 +36,7 @@ After=network.target
 [Service]
 User=$USER
 WorkingDirectory=$(pwd)
+Environment="FLASK_ENV=production"
 ExecStart=$(which gunicorn) --workers 3 --bind 0.0.0.0:5001 --timeout 120 'run:app'
 Restart=always
 
@@ -57,9 +58,11 @@ server {
     server_name _;
 
     location /api {
-        proxy_pass http://localhost:5001;
+        proxy_pass http://localhost:5001/api;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
     }
 
     location /static {
